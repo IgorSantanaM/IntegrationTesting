@@ -18,15 +18,32 @@ namespace Customers.Api.Tets.Integration.CustomerController
     public class CreateCustomerControllerTests : IClassFixture<CustomerApiFactory>
     {
         private readonly CustomerApiFactory _apiFactory;
+        private readonly Faker<CustomerRequest> _customerGenerator = new Faker<CustomerRequest>()
+            .RuleFor(x => x.Email, faker => faker.Person.Email)
+            .RuleFor(x => x.FullName, faker => faker.Person.FullName)
+            .RuleFor(x => x.GitHubUsername, CustomerApiFactory.VALID_GITHUB_USER)
+            .RuleFor(x => x.DateOfBirth, faker => faker.Person.DateOfBirth.Date);
+        private readonly HttpClient _client;
         public CreateCustomerControllerTests(CustomerApiFactory apiFactory)
         {
             _apiFactory = apiFactory;
+            _client = _apiFactory.CreateClient();
         }
 
         [Fact]
-        public async Task Test()
+        public async Task Create_CreatesUser_WhenDataIsValid()
         {
-            await Task.Delay(5000);
+            // Arrange
+            var customer = _customerGenerator.Generate();
+
+            // Act
+            var response = await _client.PostAsJsonAsync("customers", customer);
+
+            // Assert
+            var customerResponse = await response.Content.ReadFromJsonAsync<CustomerResponse>();
+            customerResponse.Should().BeEquivalentTo(customer);
+            response.StatusCode.Should().Be(HttpStatusCode.Created);
+            response.Headers.Location.Should().Be($"http://localhost/customers/{customerResponse.Id}");
         }
     }
 }
