@@ -13,12 +13,13 @@ using FluentAssertions;
 using DotNet.Testcontainers.Containers;
 using DotNet.Testcontainers.Builders;
 using Customers.Api.Tests.Integration;
+using Microsoft.AspNetCore.Mvc;
+using Org.BouncyCastle.Bcpg.Sig;
 
 namespace Customers.Api.Tets.Integration.CustomerController
 {
     public class CreateCustomerControllerTests : IClassFixture<CustomerApiFactory>
     {
-        private readonly CustomerApiFactory _apiFactory;
         private readonly Faker<CustomerRequest> _customerGenerator = new Faker<CustomerRequest>()
             .RuleFor(x => x.Email, faker => faker.Person.Email)
             .RuleFor(x => x.FullName, faker => faker.Person.FullName)
@@ -27,8 +28,7 @@ namespace Customers.Api.Tets.Integration.CustomerController
         private readonly HttpClient _client;
         public CreateCustomerControllerTests(CustomerApiFactory apiFactory)
         {
-            _apiFactory = apiFactory;
-            _client = _apiFactory.CreateClient();
+            _client = apiFactory.CreateClient();
         }
 
         [Fact]
@@ -60,9 +60,10 @@ namespace Customers.Api.Tets.Integration.CustomerController
 
             // Assert
             response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-            var errors = await response.Content.ReadFromJsonAsync<Dictionary<string, string[]>>();
-            errors.Should().ContainKey("Email");
-            errors["Email"].Should().Contain("The Email field is not a valid e-mail address.");
+            var error = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+            error!.Status.Should().Be(400);
+            error.Title.Should().Be("One or more validation errors occurred.");
+            error.Errors["Email"][0].Should().Be($"{invalidEmail} is not a valid email address");
         }
     }
 }

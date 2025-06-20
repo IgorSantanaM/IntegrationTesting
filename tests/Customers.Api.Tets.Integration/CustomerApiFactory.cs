@@ -13,16 +13,16 @@ namespace Customers.Api.Tests.Integration
     {
         private readonly PostgreSqlContainer _dbContainer =
             new PostgreSqlBuilder()
-                .WithDatabase("mydb")
+                .WithDatabase("db")
                 .WithUsername("course")
-                .WithPassword("changeme")
-                .WithPortBinding(5555, 5432)
+                .WithPassword("whatever")
                 .Build();
+
+        public const string THROTTLED_USER = "throttle";
 
         private readonly GitHubApiServer _gitHubApiServer = new();
 
         public const string VALID_GITHUB_USER = "igorsantanam";
-
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.ConfigureLogging(logging =>
